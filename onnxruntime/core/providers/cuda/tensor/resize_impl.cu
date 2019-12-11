@@ -339,7 +339,10 @@ __device__ __forceinline__ float CubicInterpolationRowwise(
     const T* image, int x, int y, int input_height, int input_width,
     float coeff0, float coeff1, float coeff2, float coeff3) {
   int row_index = max(0, min(y, input_height - 1)) * input_width;
-  return coeff0 * static_cast<float>(image[row_index + max(0, min(x - 1, input_width - 1))]) + coeff1 * static_cast<float>(image[row_index + max(0, min(x, input_width - 1))]) + coeff2 * static_cast<float>(image[row_index + max(0, min(x + 1, input_width - 1))]) + coeff3 * static_cast<float>(image[row_index + max(0, min(x + 2, input_width - 1))]);
+  return coeff0 * static_cast<float>(image[row_index + max(0, min(x - 1, input_width - 1))]) +
+         coeff1 * static_cast<float>(image[row_index + max(0, min(x, input_width - 1))]) +
+         coeff2 * static_cast<float>(image[row_index + max(0, min(x + 1, input_width - 1))]) +
+         coeff3 * static_cast<float>(image[row_index + max(0, min(x + 2, input_width - 1))]);
 }
 
 struct CubicMappingInfo {
@@ -422,7 +425,10 @@ __global__ void _ResizeBiCubicKernel(
   int x_int = x_info.origin_;
   int y_int = y_info.origin_;
   const T* image = input_data + input_index;
-  output_data[id] = y_info.coeff0_ * CubicInterpolationRowwise(image, x_int, y_int - 1, input_height, input_width, w0, w1, w2, w3) + y_info.coeff1_ * CubicInterpolationRowwise(image, x_int, y_int, input_height, input_width, w0, w1, w2, w3) + y_info.coeff2_ * CubicInterpolationRowwise(image, x_int, y_int + 1, input_height, input_width, w0, w1, w2, w3) + y_info.coeff3_ * CubicInterpolationRowwise(image, x_int, y_int + 2, input_height, input_width, w0, w1, w2, w3);
+  output_data[id] = y_info.coeff0_ * CubicInterpolationRowwise(image, x_int, y_int - 1, input_height, input_width, w0, w1, w2, w3) +
+                    y_info.coeff1_ * CubicInterpolationRowwise(image, x_int, y_int, input_height, input_width, w0, w1, w2, w3) +
+                    y_info.coeff2_ * CubicInterpolationRowwise(image, x_int, y_int + 1, input_height, input_width, w0, w1, w2, w3) +
+                    y_info.coeff3_ * CubicInterpolationRowwise(image, x_int, y_int + 2, input_height, input_width, w0, w1, w2, w3);
 }
 
 size_t CalcResizeBufferSize(const onnxruntime::UpsampleMode upsample_mode,
@@ -478,20 +484,20 @@ void ResizeNearestImpl(
         dims_mapping);
     if (extrapolation_enabled) {
       _ResizeNearestKernel2D<T, true><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0>>>(
-        output_height, output_width,
-        input_shape.CpuPtr()[rank - 2] * input_shape.CpuPtr()[rank - 1], input_shape.CpuPtr()[rank - 1],
-        div_output_image, output_div_pitches.CpuPtr()[rank - 2],
-        input_data, output_data, N,
-        extrapolation_value,
-        dims_mapping);
+          output_height, output_width,
+          input_shape.CpuPtr()[rank - 2] * input_shape.CpuPtr()[rank - 1], input_shape.CpuPtr()[rank - 1],
+          div_output_image, output_div_pitches.CpuPtr()[rank - 2],
+          input_data, output_data, N,
+          extrapolation_value,
+          dims_mapping);
     } else {
       _ResizeNearestKernel2D<T, false><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0>>>(
-        output_height, output_width,
-        input_shape.CpuPtr()[rank - 2] * input_shape.CpuPtr()[rank - 1], input_shape.CpuPtr()[rank - 1],
-        div_output_image, output_div_pitches.CpuPtr()[rank - 2],
-        input_data, output_data, N,
-        extrapolation_value,
-        dims_mapping);
+          output_height, output_width,
+          input_shape.CpuPtr()[rank - 2] * input_shape.CpuPtr()[rank - 1], input_shape.CpuPtr()[rank - 1],
+          div_output_image, output_div_pitches.CpuPtr()[rank - 2],
+          input_data, output_data, N,
+          extrapolation_value,
+          dims_mapping);
     }
     return;
   }
